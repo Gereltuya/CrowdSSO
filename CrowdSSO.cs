@@ -117,7 +117,7 @@ public class CrowdSSO
         /// <param name="username">The username of the user that is set in Crowd</param>
         /// <returns>Returns TRUE if the user exists and a pasword reset e-mail is sent. Otherwise False.</returns>
         /// <remarks>Throws WebException if authentication fails</remarks>
-        public HttpStatusCode RequestPasswordResetemail(string username)
+        public HttpStatusCode RequestPasswordResetEmail(string username)
         {
             var request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/user/mail/password?username=" + username);
             request.ContentType = "application/json";
