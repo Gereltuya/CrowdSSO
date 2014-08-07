@@ -18,8 +18,8 @@ Example:
 
 Authenticates the user and then adds the users details to a cookie for retreival later.
 
-CrowdSSO sso = new CrowdSSO("http://localhost/crowd/", "exampleAppName", "z2Ndj8RxMQik%Ruf^Hs0!WO7j#");
 
+                    CrowdSSO sso = new CrowdSSO("http://localhost/crowd/", "exampleAppName", "z2Ndj8RxMQik%Ruf^Hs0!WO7j#");
                     bool authorised = sso.Authenticate(model.username, model.password);
 
                     if (authorised)
