@@ -11,9 +11,9 @@ Includes
   - Authentication
   - Change Password
   - Update Password
-  - Retreive User Detail
-  - Retreive User Attributes
-  - Retreive Users In Group
+  - Retrieve User Detail
+  - Retrieve User Attributes
+  - Retrieve Users In Group
  
 ----
 
