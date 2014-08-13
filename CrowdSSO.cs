@@ -1,14 +1,16 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Web;
 
-public class CrowdSSO
+    public class CrowdSSO
     {
+
         /// <summary>
         /// Instatiate the single sign on service
         /// </summary>
@@ -44,34 +46,28 @@ public class CrowdSSO
         /// <remarks>Throws WebException if authentication fails</remarks>
         public HttpStatusCode Authenticate(string username, string password)
         {
-            var request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/authentication?username=" + username);
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Method = "POST";
-            request.Headers[HttpRequestHeader.Authorization] = string.Format("Basic " + Encode(applicationName, applicationPassword));
 
-            using (var writer = new StreamWriter(request.GetRequestStream()))
+            CrowdSSORequest SSORequest = new CrowdSSORequest
             {
-                var json = JsonConvert.SerializeObject(
-                    new
-                    {
-                        value = password
-                    });
+                apiCall = CrowdSSOAPICall.Authenticate,
+                group = "",
+                username = username,
+                password = password,
+                method ="POST",
+            };
 
-                writer.Write(json);
-
-            }
             try
             {
-                var result = (HttpWebResponse)request.GetResponse();
+                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
                 return result.StatusCode;
             }
-            catch (WebException)
+            catch (WebException ex)
             {
                 //Log it, alert someone and then return 
                 return HttpStatusCode.InternalServerError;
             }
-        }
+
+        }            
 
         /// <summary>
         /// Change user's password in Crowd
@@ -82,29 +78,21 @@ public class CrowdSSO
         /// <remarks>Throws WebException if authentication fails</remarks>
         public HttpStatusCode ChangePassword(string username, string password)
         {
-            var request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/user/password?username=" + username);
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Method = "POST";
-            request.Headers[HttpRequestHeader.Authorization] = string.Format("Basic " + Encode(applicationName, applicationPassword));
-
-            using (var writer = new StreamWriter(request.GetRequestStream()))
+            CrowdSSORequest SSORequest = new CrowdSSORequest
             {
-                var json = JsonConvert.SerializeObject(
-                    new
-                    {
-                        value = password
-                    });
+                apiCall = CrowdSSOAPICall.ChangePassword,
+                group = "",
+                username = username,
+                password = password,
+                method = "put",
+            };
 
-                writer.Write(json);
-
-            }
             try
             {
-                var result = (HttpWebResponse)request.GetResponse();
+                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
                 return result.StatusCode;
             }
-            catch (WebException)
+            catch (WebException ex)
             {
                 //Log it, alert someone and then return 
                 return HttpStatusCode.InternalServerError;
@@ -119,24 +107,26 @@ public class CrowdSSO
         /// <remarks>Throws WebException if authentication fails</remarks>
         public HttpStatusCode RequestPasswordResetEmail(string username)
         {
-            var request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/user/mail/password?username=" + username);
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Method = "POST";
-            request.Headers[HttpRequestHeader.Authorization] = string.Format("Basic " + Encode(applicationName, applicationPassword));
+            CrowdSSORequest SSORequest = new CrowdSSORequest
+            {
+                apiCall = CrowdSSOAPICall.RequestPasswordReset,
+                group = "",
+                username = username,
+                password = "",
+                method = "POST",
+            };
 
             try
             {
-                var result = (HttpWebResponse)request.GetResponse();
+                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
                 return result.StatusCode;
             }
-            catch (WebException)
+            catch (WebException ex)
             {
                 //Log it, alert someone and then return 
                 return HttpStatusCode.InternalServerError;
             }
         }
-
 
         /// <summary>
         /// Get user details from Crowd
@@ -149,44 +139,192 @@ public class CrowdSSO
 
             UserDetail details = new UserDetail();
 
-            var request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/user?username=" + username);
-            request.ContentType = "application/json";
-            request.Accept = "application/json";
-            request.Method = "GET";
-            request.Headers[HttpRequestHeader.Authorization] = string.Format("Basic " + Encode(applicationName, applicationPassword));
+            CrowdSSORequest SSORequest = new CrowdSSORequest
+            {
+                apiCall = CrowdSSOAPICall.UserDetail,
+                group = "",
+                username = username,
+                password = "",
+                method = "GET",
+            };
 
             try
             {
-                var result = (HttpWebResponse)request.GetResponse();
-                if (result.StatusCode == HttpStatusCode.OK)
-                {
-                    using (var reader = new StreamReader(result.GetResponseStream()))
-                    {
-                        var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(reader.ReadToEnd());
-                        details.FirstName = json[firstName].ToString();
-                        details.LastName = json[lastName].ToString();
-                        details.Username = json[displayName].ToString();
-                        details.Email = json[email].ToString();
-                    }
-                    return details;
-                }
-            }
-            catch (WebException)
-            {
-                //Log it, alert someone and then return the empty details
+                var result = getJSON(SSORequest);
+
+                details.FirstName = result[firstName].ToString();
+                details.LastName = result[lastName].ToString();
+                details.Username = result[displayName].ToString();
+                details.Email = result[email].ToString();
+
                 return details;
             }
-            return details;
+            catch (WebException ex)
+            {
+                //Log it, alert someone and then return 
+                return details;
+            }
         }
 
+        /// <summary>
+        /// Get users in a group from Crowd
+        /// </summary>
+        /// <param name="username">The username of the user that is set in Crowd</param>
+        /// <returns>Returns UserDetail object</returns>
+        /// <remarks>Throws WebException if authentication fails</remarks>
+        public List<CrowdSSOUser> UsersInGroup(string groupName)
+        {
+            List<CrowdSSOUser> userList = new List<CrowdSSOUser>();
+
+            CrowdSSORequest SSORequest = new CrowdSSORequest
+            {
+                apiCall = CrowdSSOAPICall.UsersInGroup,
+                group = groupName,
+                username = "",
+                password = "",
+                method = "GET",
+            };
+
+            try
+            {
+               
+                var result = getJSON(SSORequest);
+
+                userList = JsonConvert.DeserializeObject<List<CrowdSSOUser>>(result["users"].ToString());               
+                
+                return userList;
+            }
+            catch (WebException ex)
+            {
+                //Log it, alert someone and then return 
+                return userList;
+            }
+        }
+
+        /// <summary>
+        /// Get user attributes from Crowd via Rest API
+        /// </summary>
+        /// <param name="username">The username of the user that is set in Crowd</param>
+        /// <returns>Returns a list of CrowdSSOAttribute object </returns>
+        /// <remarks>Throws WebException if authentication fails</remarks>
+        public List<CrowdSSOAttribute> UserAttributes(string username)
+        {
+            List<CrowdSSOAttribute> userAttributes = new List<CrowdSSOAttribute>();
+
+            CrowdSSORequest SSORequest = new CrowdSSORequest
+            {
+                apiCall = CrowdSSOAPICall.UserDetail,
+                group = "",
+                username = username,
+                password = "",
+                method = "GET",
+            };
+
+            try
+            {
+                var result = getJSON(SSORequest);
+                userAttributes = JsonConvert.DeserializeObject<List<CrowdSSOAttribute>>(result["attributes"].ToString());
+
+                return userAttributes;
+            }
+            catch (WebException ex)
+            {
+                //Log it, alert someone and then return 
+                return userAttributes;
+            }
+         
+        }
 
         // Generic code we will use
         #region Private Methods
 
         private static string Encode(string username, string password)
         {
-            var auth = string.Join(":", username, password);
+            string auth = string.Join(":", username, password);
             return Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(auth));
+        }
+
+        private dynamic getJSON(CrowdSSORequest SSORequest)
+        {
+            //Dynamic as the JSON will need to be multiple types when returned
+            dynamic returnJSON = "";
+            string requestURL = buildAPICall(SSORequest);
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(crowdLocation + "rest/usermanagement/1/" + requestURL);
+            request.ContentType = "application/json";
+            request.Accept = "application/json";
+            request.Method = SSORequest.method;
+            request.Headers[HttpRequestHeader.Authorization] = string.Format("Basic " + Encode(applicationName, applicationPassword));
+
+            if (SSORequest.password != "")
+            {
+                using (StreamWriter writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    var json = JsonConvert.SerializeObject(
+                        new
+                        {
+                            value = SSORequest.password
+                        });
+
+                    writer.Write(json);
+
+                }
+            }
+            try
+            {
+                HttpWebResponse result = (HttpWebResponse)request.GetResponse();
+                if (result.StatusCode == HttpStatusCode.OK)
+                {
+                    using (StreamReader reader = new StreamReader(result.GetResponseStream()))
+                    {
+                        var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(reader.ReadToEnd());
+                        returnJSON = json;
+                    }
+
+                }
+            }
+            catch (WebException ex)
+            {
+                //Log it, alert someone and then return the empty details
+                returnJSON = ex;
+            }
+
+            return returnJSON;
+
+        }
+
+        private string buildAPICall(CrowdSSORequest SSORequest)
+        {
+
+            string requestURL = "";
+
+            if (SSORequest.apiCall == CrowdSSOAPICall.Authenticate)
+            {
+                requestURL += CrowdSSOAPICall.Authenticate.ToString() + SSORequest.username;
+            }
+
+            if (SSORequest.apiCall == CrowdSSOAPICall.ChangePassword)
+            {
+                requestURL += CrowdSSOAPICall.ChangePassword.ToString() + SSORequest.username;
+            }
+
+            if (SSORequest.apiCall == CrowdSSOAPICall.RequestPasswordReset)
+            {
+                requestURL += CrowdSSOAPICall.RequestPasswordReset.ToString() + SSORequest.username;
+            }
+
+            if (SSORequest.apiCall == CrowdSSOAPICall.UserDetail)
+            {
+                requestURL += CrowdSSOAPICall.UserDetail.ToString() + SSORequest.username;
+            }
+
+            if (SSORequest.apiCall == CrowdSSOAPICall.UsersInGroup)
+            {
+                requestURL += CrowdSSOAPICall.UsersInGroup.ToString() + SSORequest.group;
+            }
+
+            return requestURL;
+
         }
 
         #endregion
