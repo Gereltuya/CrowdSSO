@@ -1,47 +1,110 @@
-CrowdSSO
-========
+Crowd SSO C#
+=========
 
-Implementation of authentication, passwords, details for the Crowd Single Sign On service.
+Implementation of authentication, passwords, details for the Atlassian Crowd Single Sign On service.
 
-Provided:
+----
 
-Authentication
-Change Password
-Request Password Reset E-Mail
-Retreive User Detail
+Includes
+----
 
-Requires:
+  - Authentication
+  - Change Password
+  - Update Password
+  - Retreive User Detail
+  - Retreive User Attributes
+  - Retreive Users In Group
+ 
+----
 
-Newtonsoft.Json
+Requires
+----
 
-Example:
+[Json.NET]  
 
-Authenticates the user and then adds the users details to a cookie for retreival later.
+[Json.NET]:https://www.nuget.org/packages/newtonsoft.json/
+
+----
+
+Example
+----
+
+This is an example of authenicating a user from a form (MVC) if the u
 
 
-                    CrowdSSO sso = new CrowdSSO("http://localhost/crowd/", "exampleAppName", "z2Ndj8RxMQik%Ruf^Hs0!WO7j#");
-                    bool authorised = sso.Authenticate(model.username, model.password);
+  
 
-                    if (authorised)
+        CrowdSSO sso = new CrowdSSO("https://server/crowd/", "example_app_name", "z2Ndj8RxMQik%Ruf^Hs0!WO7j#");
+        
+        [HttpPost, ValidateInput(false)]
+        public ActionResult Login(UserLogin model)
+        {
+            try
+            {
+                if (ModelState.IsValid)
+                {
+
+                    HttpStatusCode authorised = sso.Authenticate(model.username, model.password);
+
+                    switch (authorised)
                     {
-                        UserDetail UserDetail = new UserDetail();
+                        case HttpStatusCode.OK:
+                            UserDetail UserDetail = new UserDetail();
 
-                        UserDetail = sso.UserDetail(model.username);
+                            //UserDetail = sso.UserDetail(model.username);
 
-                        FormsAuthenticationTicket ticket = new FormsAuthenticationTicket(
-                              1,                                     // ticket version
-                              model.username,                        // authenticated username
-                              DateTime.Now,                          // issueDate
-                              DateTime.Now.AddDays(30),              // expiryDate
-                              true,                                  // true to persist across browser sessions
-                              UserDetail.ToString(),                // serialise a UserDetail object
-                              FormsAuthentication.FormsCookiePath    // the path for the cookie
-                        );
+                            //Get the permissions.
+                            //UserDetail.Permissions = userInterface.Permissions(model.username);
 
-                        // Encrypt the ticket using the machine key
-                        string encryptedTicket = FormsAuthentication.Encrypt(ticket);
+                            FormsAuthenticationTicket ticket = new FormsAuthenticationTicket(
+                                  1,                                     // ticket version
+                                  model.username,                        // authenticated username
+                                  DateTime.Now,                          // issueDate
+                                  DateTime.Now.AddDays(30),              // expiryDate
+                                  true,                                  // true to persist across browser sessions
+                                  UserDetail.ToString(),                // serialise a UserDetail object
+                                  FormsAuthentication.FormsCookiePath    // the path for the cookie
+                            );
 
-                        // Add the cookie to the request to save it
-                        HttpCookie cookie = new HttpCookie(FormsAuthentication.FormsCookieName, encryptedTicket);
-                        cookie.HttpOnly = true;
-                        Response.Cookies.Add(cookie);
+                            // Encrypt the ticket using the machine key
+                            string encryptedTicket = FormsAuthentication.Encrypt(ticket);
+
+                            // Add the cookie to the request to save it
+                            HttpCookie cookie = new HttpCookie(FormsAuthentication.FormsCookieName, encryptedTicket);
+                            cookie.HttpOnly = true;
+                            Response.Cookies.Add(cookie);
+
+                            //Send them on their way
+                            return RedirectToAction("Index", "Overview", new { area = "Home" });
+
+                        case HttpStatusCode.BadRequest:
+                            ModelState.AddModelError("", "Your username or password is incorrect...");
+                            return View(model);
+
+                        default:
+                            //If it's not OK or a Bad Request then something went wrong
+                            ModelState.AddModelError("", "There is currently an issue connecting to the server");
+                            return View(model);
+                    }                
+                }   
+                else
+                {
+                    return View(model);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(model);
+            }
+
+
+        } 
+
+
+
+License
+----
+
+MIT
