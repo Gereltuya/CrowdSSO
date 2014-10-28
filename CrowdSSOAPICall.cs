@@ -13,7 +13,7 @@ using System.Web;
         public static readonly CrowdSSOAPICall ChangePassword = new CrowdSSOAPICall(2, "user/password?username=");
         public static readonly CrowdSSOAPICall RequestPasswordReset = new CrowdSSOAPICall(3, "user/mail/password?username=");
         public static readonly CrowdSSOAPICall UsersInGroup = new CrowdSSOAPICall(4, "group/user/nested?groupname=");
-        public static readonly CrowdSSOAPICall UserDetail = new CrowdSSOAPICall(5, "user/attribute?username=");
+        public static readonly CrowdSSOAPICall UserDetail = new CrowdSSOAPICall(5, "user?username=");
 
         private CrowdSSOAPICall(int value, String name)
         {
