@@ -6,9 +6,6 @@ public class UserDetail
         public string Email { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public string VectusUsername { get; set; }
-        public int ParabisEmployeeID { get; set; }
-        public int SessionID { get; set; }
 
         // Serialize    
         public override string ToString()
