@@ -7,7 +7,13 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Web;
+using System.Web.Helpers;
+using Newtonsoft.Json.Linq;
+using App.Authorise;
+using App.Areas.User.Models;
 
+namespace App.Authorise
+{
     public class CrowdSSO
     {
 
@@ -53,13 +59,22 @@ using System.Web;
                 group = "",
                 username = username,
                 password = password,
-                method ="POST",
+                method = "POST",
             };
 
             try
             {
-                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
-                return result.StatusCode;
+                var result = getJSON(SSORequest);
+
+                if (result.GetType() != typeof(Exception))
+                {
+                    return HttpStatusCode.OK;
+                }
+                else
+                {
+                    return HttpStatusCode.NotFound;
+                }
+
             }
             catch (WebException ex)
             {
@@ -67,7 +82,7 @@ using System.Web;
                 return HttpStatusCode.InternalServerError;
             }
 
-        }            
+        }
 
         /// <summary>
         /// Change user's password in Crowd
@@ -84,12 +99,12 @@ using System.Web;
                 group = "",
                 username = username,
                 password = password,
-                method = "put",
+                method = "PUT",
             };
 
             try
             {
-                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
+                var result = (HttpWebResponse)getJSON(SSORequest);
                 return result.StatusCode;
             }
             catch (WebException ex)
@@ -118,7 +133,7 @@ using System.Web;
 
             try
             {
-                var result = (HttpWebResponse)getJSON(SSORequest).GetResponse();
+                var result = (HttpWebResponse)getJSON(SSORequest);
                 return result.StatusCode;
             }
             catch (WebException ex)
@@ -151,11 +166,25 @@ using System.Web;
             try
             {
                 var result = getJSON(SSORequest);
+                List<CrowdSSOAttribute> attributes = new List<CrowdSSOAttribute>();                
 
-                details.FirstName = result[firstName].ToString();
-                details.LastName = result[lastName].ToString();
-                details.Username = result[displayName].ToString();
-                details.Email = result[email].ToString();
+                foreach (var prop in result)
+                {
+                    attributes.Add(new CrowdSSOAttribute { Name = prop.Key, Values = prop.Value.ToString() });
+                }
+
+                details.FirstName = attributes[7].Values.ToString();
+                details.LastName = attributes[8].Values.ToString();
+                details.Username = attributes[10].Values.ToString();
+                details.Email = attributes[10].Values.ToString();
+
+                attributes = UserAttributes(username);
+
+                details.VectusUsername = attributes[3].Values.ToString();
+                details.VectusUsername = details.VectusUsername.Replace("[", "");
+                details.VectusUsername = details.VectusUsername.Replace("]", "");
+                details.VectusUsername = details.VectusUsername.Replace("\"", "");
+                details.VectusUsername = details.VectusUsername.Trim();
 
                 return details;
             }
@@ -187,11 +216,11 @@ using System.Web;
 
             try
             {
-               
+
                 var result = getJSON(SSORequest);
 
-                userList = JsonConvert.DeserializeObject<List<CrowdSSOUser>>(result["users"].ToString());               
-                
+                userList = JsonConvert.DeserializeObject<List<CrowdSSOUser>>(result["users"].ToString());
+
                 return userList;
             }
             catch (WebException ex)
@@ -213,7 +242,7 @@ using System.Web;
 
             CrowdSSORequest SSORequest = new CrowdSSORequest
             {
-                apiCall = CrowdSSOAPICall.UserDetail,
+                apiCall = CrowdSSOAPICall.UserAttribute,
                 group = "",
                 username = username,
                 password = "",
@@ -232,7 +261,7 @@ using System.Web;
                 //Log it, alert someone and then return 
                 return userAttributes;
             }
-         
+
         }
 
         // Generic code we will use
@@ -323,9 +352,16 @@ using System.Web;
                 requestURL += CrowdSSOAPICall.UsersInGroup.ToString() + SSORequest.group;
             }
 
+            if (SSORequest.apiCall == CrowdSSOAPICall.UserAttribute)
+            {
+                requestURL += CrowdSSOAPICall.UserAttribute.ToString() + SSORequest.username;
+            }
+
             return requestURL;
 
         }
 
         #endregion
     }
+
+}
