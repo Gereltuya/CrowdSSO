@@ -32,15 +32,4 @@ public class UserDetail
 
             return userDetail;
         }
-
-        public int SessionFromCookie()
-        {
-            FormsAuthenticationTicket ticket = FormsAuthentication.Decrypt(HttpContext.Current.Request.Cookies[FormsAuthentication.FormsCookieName].Value);
-
-            UserDetail userDetail = new UserDetail();
-
-            userDetail = UserDetail.FromString(ticket.UserData);
-
-            return userDetail.SessionID;
-        }
     }
