@@ -51,10 +51,9 @@ This is an example of authenicating a user from a form (MVC) if the u
                         case HttpStatusCode.OK:
                             UserDetail UserDetail = new UserDetail();
 
-                            //UserDetail = sso.UserDetail(model.username);
+                            UserDetail = sso.UserDetail(model.username);
 
-                            //Get the permissions.
-                            //UserDetail.Permissions = userInterface.Permissions(model.username);
+                            UserDetail.SessionID = Convert.ToInt32(returnCode);
 
                             FormsAuthenticationTicket ticket = new FormsAuthenticationTicket(
                                   1,                                     // ticket version
@@ -62,7 +61,7 @@ This is an example of authenicating a user from a form (MVC) if the u
                                   DateTime.Now,                          // issueDate
                                   DateTime.Now.AddDays(30),              // expiryDate
                                   true,                                  // true to persist across browser sessions
-                                  UserDetail.ToString(),                // serialise a UserDetail object
+                                  UserDetail.ToString(),                 // serialise a UserDetail object
                                   FormsAuthentication.FormsCookiePath    // the path for the cookie
                             );
 
@@ -74,10 +73,11 @@ This is an example of authenicating a user from a form (MVC) if the u
                             cookie.HttpOnly = true;
                             Response.Cookies.Add(cookie);
 
-                            //Send them on their way
-                            return RedirectToAction("Index", "Overview", new { area = "Home" });
 
-                        case HttpStatusCode.BadRequest:
+                            //Send them on their way
+                            return RedirectToAction("Index", "Overview", new { area = "Dashboard" });
+
+                        case HttpStatusCode.NotFound:
                             ModelState.AddModelError("", "Your username or password is incorrect...");
                             return View(model);
 
@@ -85,7 +85,7 @@ This is an example of authenicating a user from a form (MVC) if the u
                             //If it's not OK or a Bad Request then something went wrong
                             ModelState.AddModelError("", "There is currently an issue connecting to the server");
                             return View(model);
-                    }                
+                    }             
                 }   
                 else
                 {
