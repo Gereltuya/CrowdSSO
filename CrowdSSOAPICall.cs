@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
+namespace App.Authorise
+{
     public sealed class CrowdSSOAPICall
     {
 
@@ -14,6 +16,7 @@ using System.Web;
         public static readonly CrowdSSOAPICall RequestPasswordReset = new CrowdSSOAPICall(3, "user/mail/password?username=");
         public static readonly CrowdSSOAPICall UsersInGroup = new CrowdSSOAPICall(4, "group/user/nested?groupname=");
         public static readonly CrowdSSOAPICall UserDetail = new CrowdSSOAPICall(5, "user?username=");
+        public static readonly CrowdSSOAPICall UserAttribute = new CrowdSSOAPICall(6, "user/attribute?username=");
 
         private CrowdSSOAPICall(int value, String name)
         {
@@ -27,3 +30,5 @@ using System.Web;
         }
 
     }
+
+}
