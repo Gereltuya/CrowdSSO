@@ -52,9 +52,7 @@ This is an example of authenicating a user from a form (MVC) if the u
                             UserDetail UserDetail = new UserDetail();
 
                             UserDetail = sso.UserDetail(model.username);
-
-                            UserDetail.SessionID = Convert.ToInt32(returnCode);
-
+                            
                             FormsAuthenticationTicket ticket = new FormsAuthenticationTicket(
                                   1,                                     // ticket version
                                   model.username,                        // authenticated username
